@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chat Puro HTMX</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.10/dist/ext/ws.js"></script>
+    <style>
+        body { font-family: sans-serif; max-width: 600px; margin: 20px auto; }
+        .msg { margin: 5px 0; padding: 8px 12px; border-radius: 8px; }
+        .user-msg { background: #4f46e5; color: white; }
+        .sys-msg { background: #e5e7eb; color: #555; text-align: center; font-style: italic; }
+        #msgs { height: 400px; overflow-y: auto; border: 1px solid #ccc; padding: 15px; display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px;}
+        .input-container { display: flex; gap: 8px; }
+        input { padding: 10px; font-size: 16px; }
+        button { padding: 10px 20px; cursor: pointer; }
+    </style>
+</head>
+<body hx-ext="ws" ws-connect="/chat-ws">
+
+<h2>💬 Chat HTMX (Sem JS)</h2>
+
+<div id="msgs">
+    <div class="msg sys-msg">Conectado. Identifique-se.</div>
+</div>
+
+<div id="login-area">
+    <form ws-send>
+        <input type="hidden" name="type" value="LOGIN">
+        <input name="value" placeholder="Seu nome..." required autofocus>
+        <button type="submit">Entrar</button>
+    </form>
+</div>
+
+<script>
+    // Único script utilitário para scroll (opcional, mas bom ter)
+    document.body.addEventListener('htmx:wsAfterMessage', function() {
+        var msgs = document.getElementById('msgs');
+        msgs.scrollTop = msgs.scrollHeight;
+    });
+</script>
+</body>
+</html>

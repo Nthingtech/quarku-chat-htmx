@@ -1,0 +1,14 @@
+<div id="login-area" hx-swap-oob="true">
+
+    <form ws-send hx-on::ws-after-send="this.reset()" class="input-container">
+
+        <input type="hidden" name="type" value="MSG">
+
+        <input name="value" id="m" placeholder="Escreva aqui..." required style="flex: 1; padding: 10px;">
+        <button type="submit">Enviar</button>
+    </form>
+
+    <div style="font-size: 0.8em; color: gray; margin-top: 5px;">
+        Logado como: <strong>{username}</strong>
+    </div>
+</div>
