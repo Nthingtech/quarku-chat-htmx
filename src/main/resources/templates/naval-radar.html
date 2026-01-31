@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Radar Naval Global</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.10/dist/ext/ws.js"></script>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #050a14;
+            color: #00d4ff;
+            padding: 20px;
+            margin: 0;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #00d4ff;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .stats {
+            background: #002244;
+            padding: 10px;
+            border: 1px solid #00d4ff;
+            color: #fff;
+        }
+        #ship-count {
+            font-size: 1.5em;
+            color: #00ff00;
+            font-weight: bold;
+        }
+        #radar-log {
+            border: 1px solid #00d4ff;
+            height: 600px;
+            overflow-y: auto;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.8);
+            box-shadow: inset 0 0 20px #002244;
+        }
+        .alert-entry {
+            border-bottom: 1px solid #002244;
+            padding: 10px;
+            margin-bottom: 5px;
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+        .blink {
+            animation: blinker 1.5s linear infinite;
+            color: #ff3c00;
+            font-weight: bold;
+        }
+        @keyframes blinker { 50% { opacity: 0; } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Scrollbar customizada para o tema escuro */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #050a14; }
+        ::-webkit-scrollbar-thumb { background: #00d4ff; }
+    </style>
+</head>
+<body hx-ext="ws" ws-connect="/ships-ws">
+
+<div class="header">
+    <div>
+        <h2>⚓ MONITORAMENTO NAVAL GLOBAL</h2>
+        <p style="margin: 0; font-size: 0.8em; color: #5588aa;">Sincronizado via Satélite AIS (Tempo Real)</p>
+    </div>
+    <div class="stats">
+        NAVIO DETECTADOS: <span id="ship-count">0</span>
+    </div>
+</div>
+
+<div id="radar-log">
+    <div class="alert-entry" style="color: #5588aa; font-style: italic;">
+        Estabelecendo conexão com a rede AISStream...
+    </div>
+</div>
+
+</body>
+</html>
