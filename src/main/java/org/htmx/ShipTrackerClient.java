@@ -11,6 +11,8 @@ import io.quarkus.websockets.next.WebSocketClient;
 import io.quarkus.websockets.next.WebSocketClientConnection;
 import io.vertx.core.buffer.Buffer;
 import jakarta.inject.Inject;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+
 import java.nio.charset.StandardCharsets;
 
 
@@ -22,8 +24,8 @@ public class ShipTrackerClient {
 
     private final ObjectMapper mapper = new ObjectMapper();
 
-    // 🔑 COLOQUE SUA API KEY AQUI
-    private final String API_KEY = "dc826dd6f62d3dced787c75fc6e0d6894f7ec59d";
+    @ConfigProperty(name = "aisstream.api.key")
+    String apiKey;
 
     @OnOpen
     void onOpen(WebSocketClientConnection connection) {
@@ -31,7 +33,7 @@ public class ShipTrackerClient {
 
         try {
             ObjectNode subscription = mapper.createObjectNode();
-            subscription.put("APIKey", API_KEY);
+            subscription.put("APIKey", apiKey);
 
             ArrayNode boundingBoxes = mapper.createArrayNode();
 
