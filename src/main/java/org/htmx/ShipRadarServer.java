@@ -4,6 +4,8 @@ import io.quarkus.websockets.next.OnClose;
 import io.quarkus.websockets.next.OnOpen;
 import io.quarkus.websockets.next.WebSocket;
 import io.quarkus.websockets.next.WebSocketConnection;
+import jakarta.inject.Inject;
+
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -13,6 +15,10 @@ public class ShipRadarServer {
 
     private static final List<WebSocketConnection> connections = new CopyOnWriteArrayList<>();
     private static final AtomicInteger shipCount = new AtomicInteger(0);
+
+    // 🔥 NOVO: Injeta o ChatWebSocket para enviar alertas
+    @Inject
+    ChatWebSocket chatWebSocket;
 
     @OnOpen
     void onOpen(WebSocketConnection connection) {
@@ -45,13 +51,19 @@ public class ShipRadarServer {
         System.out.println("📢 BROADCASTING navio '" + name + "' para " + connections.size() + " terminais");
         System.out.println("📊 Total de navios detectados: " + currentCount);
 
-        if (connections.isEmpty()) {
-            System.err.println("⚠️ ATENÇÃO: Nenhum terminal conectado!");
-            return;
-        }
-
         // Determina localização aproximada no Brasil
         String location = getLocationInBrazil(lat, lon);
+
+        // 🔥 NOVO: Verifica se é um navio interessante para alertar no chat
+        if (isInterestingShip(shipType, location, speedKmh, name)) {
+            System.out.println("🎯 Navio interessante! Enviando alerta para o chat...");
+            chatWebSocket.broadcastShipAlert(name, shipType, location, flag, speedKmh, destination);
+        }
+
+        if (connections.isEmpty()) {
+            System.err.println("⚠️ ATENÇÃO: Nenhum terminal de radar conectado!");
+            return;
+        }
 
         // HTML melhorado com mais informações úteis
         String html = """
@@ -92,7 +104,48 @@ public class ShipRadarServer {
             }
         }
 
-        System.out.println("✅ HTML enviado para " + sent + " terminal(is)");
+        System.out.println("✅ HTML enviado para " + sent + " terminal(is) de radar");
+    }
+
+    // 🔥 NOVO: Determina se um navio é "interessante" para alertar no chat
+    private boolean isInterestingShip(String shipType, String location, double speedKmh, String name) {
+        // Petroleiros e tanques são sempre interessantes
+        if (shipType.contains("Petroleiro") || shipType.contains("Tanque")) {
+            return true;
+        }
+
+        // Porta-contentores grandes são interessantes
+        if (shipType.contains("Porta-contentores")) {
+            return true;
+        }
+
+        // Navios militares
+        if (shipType.contains("Militar")) {
+            return true;
+        }
+
+        // Navios próximos a portos importantes
+        if (location.contains("Santos") || location.contains("Rio de Janeiro") ||
+                location.contains("Paranaguá") || location.contains("Suape")) {
+            return true;
+        }
+
+        // Velocidades incomuns
+        if (speedKmh > 40) {  // Muito rápido
+            return true;
+        }
+
+        if (speedKmh < 2 && speedKmh > 0) {  // Quase parado (pode estar ancorando)
+            return true;
+        }
+
+        // Navios com nomes específicos (ex: PETROBRAS, VALE, etc)
+        if (name.contains("PETROBRAS") || name.contains("VALE") ||
+                name.contains("TRANSPETRO") || name.contains("MEARSK")) {
+            return true;
+        }
+
+        return false;  // Navio comum, não alerta no chat
     }
 
     // Identifica região aproximada no Brasil baseado em coordenadas

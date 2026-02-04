@@ -5,7 +5,7 @@
     <title>Radar Naval - Costa Brasileira</title>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <script src="https://unpkg.com/htmx.org@1.9.10/dist/ext/ws.js"></script>
-    <script src="https://unpkg.com/hyperscript.org@0.9.12"></script>
+    <script src="https://unpkg.com/alpinejs@3.13.3/dist/cdn.min.js" defer></script>
     <style>
         * {
             margin: 0;
@@ -140,9 +140,9 @@
             box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
         }
 
-        /* Esconde navios filtrados */
-        .alert-entry[data-hidden="true"] {
-            display: none;
+        /* Alpine.js: Esconde navios filtrados */
+        [x-cloak] {
+            display: none !important;
         }
 
         .blink {
@@ -248,7 +248,8 @@
 </head>
 <body hx-ext="ws" ws-connect="/ships-ws">
 
-<div class="container">
+<!-- 🔥 Alpine.js: Componente de filtro -->
+<div class="container" x-data="{ currentFilter: 'all' }">
     <div class="header">
         <div class="header-content">
             <div class="title-section">
@@ -270,68 +271,39 @@
     <div class="controls">
         <span style="color: #94a3b8;">📊 Filtros:</span>
 
-        <!-- Usando hyperscript puro para filtrar -->
-        <button class="filter-btn active"
-                _="on click
-                   remove .active from .filter-btn
-                   add .active to me
-                   set data-hidden to 'false' on .alert-entry">
+        <!-- 🔥 Alpine.js: Filtros com x-on:click e :class -->
+        <button
+                class="filter-btn"
+                :class="{ 'active': currentFilter === 'all' }"
+                @click="currentFilter = 'all'">
             Todos
         </button>
 
-        <button class="filter-btn"
-                _="on click
-                   remove .active from .filter-btn
-                   add .active to me
-                   repeat for ship in .alert-entry
-                     if ship.innerText contains 'Carga' or ship.innerText contains '📦'
-                       set ship.dataset.hidden to 'false'
-                     else
-                       set ship.dataset.hidden to 'true'
-                     end
-                   end">
+        <button
+                class="filter-btn"
+                :class="{ 'active': currentFilter === 'carga' }"
+                @click="currentFilter = 'carga'">
             📦 Carga
         </button>
 
-        <button class="filter-btn"
-                _="on click
-                   remove .active from .filter-btn
-                   add .active to me
-                   repeat for ship in .alert-entry
-                     if ship.innerText contains 'Petroleiro' or ship.innerText contains '🛢️'
-                       set ship.dataset.hidden to 'false'
-                     else
-                       set ship.dataset.hidden to 'true'
-                     end
-                   end">
+        <button
+                class="filter-btn"
+                :class="{ 'active': currentFilter === 'petroleiro' }"
+                @click="currentFilter = 'petroleiro'">
             🛢️ Petroleiros
         </button>
 
-        <button class="filter-btn"
-                _="on click
-                   remove .active from .filter-btn
-                   add .active to me
-                   repeat for ship in .alert-entry
-                     if ship.innerText contains 'Passageiros' or ship.innerText contains '🛳️'
-                       set ship.dataset.hidden to 'false'
-                     else
-                       set ship.dataset.hidden to 'true'
-                     end
-                   end">
+        <button
+                class="filter-btn"
+                :class="{ 'active': currentFilter === 'passageiros' }"
+                @click="currentFilter = 'passageiros'">
             🛳️ Passageiros
         </button>
 
-        <button class="filter-btn"
-                _="on click
-                   remove .active from .filter-btn
-                   add .active to me
-                   repeat for ship in .alert-entry
-                     if ship.innerText contains 'Pesca' or ship.innerText contains '🎣'
-                       set ship.dataset.hidden to 'false'
-                     else
-                       set ship.dataset.hidden to 'true'
-                     end
-                   end">
+        <button
+                class="filter-btn"
+                :class="{ 'active': currentFilter === 'pesca' }"
+                @click="currentFilter = 'pesca'">
             🎣 Pesca
         </button>
     </div>
@@ -345,6 +317,53 @@
 </div>
 
 <a href="/" class="nav-link">💬 Ir para o Chat</a>
+
+<script>
+    // 🔥 Alpine.js: Filtro global que funciona com elementos adicionados dinamicamente
+    document.addEventListener('alpine:init', () => {
+        // Observa mudanças no DOM para aplicar filtro em novos navios
+        const observer = new MutationObserver(() => {
+            const container = document.querySelector('[x-data]');
+            if (container && container.__x) {
+                applyFilter(container.__x.$data.currentFilter);
+            }
+        });
+
+        observer.observe(document.getElementById('radar-log'), {
+            childList: true
+        });
+
+        // Função para aplicar filtro
+        function applyFilter(filter) {
+            const ships = document.querySelectorAll('.alert-entry');
+
+            ships.forEach(ship => {
+                if (filter === 'all') {
+                    ship.style.display = 'block';
+                } else {
+                    const text = ship.innerText.toLowerCase();
+                    const shouldShow = text.includes(filter) ||
+                                     (filter === 'carga' && text.includes('📦')) ||
+                                     (filter === 'petroleiro' && (text.includes('🛢️') || text.includes('petroleiro'))) ||
+                                     (filter === 'passageiros' && text.includes('🛳️')) ||
+                                     (filter === 'pesca' && text.includes('🎣'));
+
+                    ship.style.display = shouldShow ? 'block' : 'none';
+                }
+            });
+        }
+
+        // Aplica filtro quando muda
+        document.querySelector('[x-data]').addEventListener('click', (e) => {
+            if (e.target.classList.contains('filter-btn')) {
+                setTimeout(() => {
+                    const container = document.querySelector('[x-data]');
+                    applyFilter(container.__x.$data.currentFilter);
+                }, 50);
+            }
+        });
+    });
+</script>
 
 </body>
 </html>
