@@ -140,8 +140,8 @@
             box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
         }
 
-        /* Alpine.js: Esconde navios filtrados */
-        [x-cloak] {
+        /* 🔥 IMPORTANTE: Classe para esconder navios filtrados */
+        .alert-entry.hidden {
             display: none !important;
         }
 
@@ -249,7 +249,7 @@
 <body hx-ext="ws" ws-connect="/ships-ws">
 
 <!-- 🔥 Alpine.js: Componente de filtro -->
-<div class="container" x-data="{ currentFilter: 'all' }">
+<div class="container" x-data="radarFilter()">
     <div class="header">
         <div class="header-content">
             <div class="title-section">
@@ -271,45 +271,45 @@
     <div class="controls">
         <span style="color: #94a3b8;">📊 Filtros:</span>
 
-        <!-- 🔥 Alpine.js: Filtros com x-on:click e :class -->
+        <!-- 🔥 Alpine.js: Botões de filtro -->
         <button
                 class="filter-btn"
                 :class="{ 'active': currentFilter === 'all' }"
-                @click="currentFilter = 'all'">
+                @click="setFilter('all')">
             Todos
         </button>
 
         <button
                 class="filter-btn"
                 :class="{ 'active': currentFilter === 'carga' }"
-                @click="currentFilter = 'carga'">
+                @click="setFilter('carga')">
             📦 Carga
         </button>
 
         <button
                 class="filter-btn"
                 :class="{ 'active': currentFilter === 'petroleiro' }"
-                @click="currentFilter = 'petroleiro'">
+                @click="setFilter('petroleiro')">
             🛢️ Petroleiros
         </button>
 
         <button
                 class="filter-btn"
                 :class="{ 'active': currentFilter === 'passageiros' }"
-                @click="currentFilter = 'passageiros'">
+                @click="setFilter('passageiros')">
             🛳️ Passageiros
         </button>
 
         <button
                 class="filter-btn"
                 :class="{ 'active': currentFilter === 'pesca' }"
-                @click="currentFilter = 'pesca'">
+                @click="setFilter('pesca')">
             🎣 Pesca
         </button>
     </div>
 
     <div id="radar-log">
-        <div class="alert-entry" style="color: #94a3b8; text-align: center; border-left-color: #475569;">
+        <div class="alert-entry welcome-msg" style="color: #94a3b8; text-align: center; border-left-color: #475569;">
             <span class="status-dot"></span>
             Estabelecendo conexão com a rede AIS...
         </div>
@@ -319,50 +319,72 @@
 <a href="/" class="nav-link">💬 Ir para o Chat</a>
 
 <script>
-    // 🔥 Alpine.js: Filtro global que funciona com elementos adicionados dinamicamente
-    document.addEventListener('alpine:init', () => {
-        // Observa mudanças no DOM para aplicar filtro em novos navios
-        const observer = new MutationObserver(() => {
-            const container = document.querySelector('[x-data]');
-            if (container && container.__x) {
-                applyFilter(container.__x.$data.currentFilter);
-            }
-        });
+    // 🔥 Alpine.js: Componente de filtro CORRIGIDO
+    function radarFilter() {
+        return {
+            currentFilter: 'all',
 
-        observer.observe(document.getElementById('radar-log'), {
-            childList: true
-        });
+            setFilter(filter) {
+                this.currentFilter = filter;
+                this.applyFilter();
+            },
 
-        // Função para aplicar filtro
-        function applyFilter(filter) {
-            const ships = document.querySelectorAll('.alert-entry');
+            applyFilter() {
+                const ships = document.querySelectorAll('.alert-entry:not(.welcome-msg)');
 
-            ships.forEach(ship => {
-                if (filter === 'all') {
-                    ship.style.display = 'block';
-                } else {
+                ships.forEach(ship => {
+                    // Remove classe hidden de todos
+                    ship.classList.remove('hidden');
+
+                    if (this.currentFilter === 'all') {
+                        return; // Mostra todos
+                    }
+
+                    // Verifica data-type (adicionado pelo backend)
+                    const dataType = ship.getAttribute('data-type') || '';
                     const text = ship.innerText.toLowerCase();
-                    const shouldShow = text.includes(filter) ||
-                                     (filter === 'carga' && text.includes('📦')) ||
-                                     (filter === 'petroleiro' && (text.includes('🛢️') || text.includes('petroleiro'))) ||
-                                     (filter === 'passageiros' && text.includes('🛳️')) ||
-                                     (filter === 'pesca' && text.includes('🎣'));
 
-                    ship.style.display = shouldShow ? 'block' : 'none';
-                }
-            });
-        }
+                    let shouldShow = false;
 
-        // Aplica filtro quando muda
-        document.querySelector('[x-data]').addEventListener('click', (e) => {
-            if (e.target.classList.contains('filter-btn')) {
-                setTimeout(() => {
-                    const container = document.querySelector('[x-data]');
-                    applyFilter(container.__x.$data.currentFilter);
-                }, 50);
+                    switch(this.currentFilter) {
+                        case 'carga':
+                            shouldShow = dataType.includes('carga') || text.includes('carga') || text.includes('📦');
+                            break;
+                        case 'petroleiro':
+                            shouldShow = dataType.includes('petroleiro') || dataType.includes('tanque') ||
+                                       text.includes('petroleiro') || text.includes('tanque') || text.includes('🛢️');
+                            break;
+                        case 'passageiros':
+                            shouldShow = dataType.includes('passageiros') || text.includes('passageiros') || text.includes('🛳️');
+                            break;
+                        case 'pesca':
+                            shouldShow = dataType.includes('pesca') || text.includes('pesca') || text.includes('🎣');
+                            break;
+                    }
+
+                    if (!shouldShow) {
+                        ship.classList.add('hidden');
+                    }
+                });
+            },
+
+            // Observa quando novos navios chegam via WebSocket
+            init() {
+                const radarLog = document.getElementById('radar-log');
+
+                // Observador de mutações para detectar novos navios
+                const observer = new MutationObserver(() => {
+                    // Aguarda um pouquinho para o DOM se estabilizar
+                    setTimeout(() => this.applyFilter(), 100);
+                });
+
+                observer.observe(radarLog, {
+                    childList: true,
+                    subtree: true
+                });
             }
-        });
-    });
+        }
+    }
 </script>
 
 </body>
